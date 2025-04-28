@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -10,10 +10,11 @@ import {
   ThemeProvider
 } from '@mui/material';
 import PointCloudViewer from './components/PointCloudViewer';
+import { useWebSocketData } from './hooks/useWebSocketData';
 
 function App() {
-  const [frame, setFrame] = useState(0);
-  const [mode, setMode] = useState('light');
+  const { points, image1, image2, frame } = useWebSocketData('ws://localhost:8000/ws');
+  const [mode, setMode] = React.useState('light');
 
   const toggleTheme = () => {
     setMode(prev => (prev === 'light' ? 'dark' : 'light'));
@@ -31,9 +32,6 @@ function App() {
       }),
     [mode]
   );
-
-  const handleNext = () => setFrame(prev => prev + 1);
-  const handlePrev = () => setFrame(prev => (prev > 0 ? prev - 1 : 0));
 
   return (
     <ThemeProvider theme={theme}>
@@ -66,11 +64,15 @@ function App() {
 
           <Box my={4}>
             <Paper elevation={3} sx={{ p: 2 }}>
-              <img
-                src="https://placehold.co/1000x128"
-                alt="Immagine 1"
-                style={{ width: '100%', borderRadius: 8 }}
-              />
+              {image1 ? (
+                <img
+                  src={`data:image/png;base64,${image1}`}
+                  alt="Immagine 1"
+                  style={{ width: '100%', borderRadius: 8 }}
+                />
+              ) : (
+                <Typography align="center">Caricamento immagine 1...</Typography>
+              )}
               <Typography variant="h6" align="center" mt={2}>
                 Immagine 1: Una descrizione
               </Typography>
@@ -79,11 +81,15 @@ function App() {
 
           <Box my={4}>
             <Paper elevation={3} sx={{ p: 2 }}>
-              <img
-                src="https://placehold.co/1000x128"
-                alt="Immagine 2"
-                style={{ width: '100%', borderRadius: 8 }}
-              />
+              {image2 ? (
+                <img
+                  src={`data:image/png;base64,${image2}`}
+                  alt="Immagine 2"
+                  style={{ width: '100%', borderRadius: 8 }}
+                />
+              ) : (
+                <Typography align="center">Caricamento immagine 2...</Typography>
+              )}
               <Typography variant="h6" align="center" mt={2}>
                 Immagine 2: Un'altra descrizione
               </Typography>
@@ -91,22 +97,12 @@ function App() {
           </Box>
 
           <Box my={4}>
-          <Paper elevation={3} sx={{ p: 2, overflow: 'hidden' }}>
-            <Typography variant="h6" align="center" gutterBottom>
-              Nuvola di punti (demo)
-            </Typography>
-            <PointCloudViewer frame={frame} />
-          </Paper>
-
-          </Box>
-
-          <Box display="flex" justifyContent="center" gap={2} mt={4}>
-            <Button onClick={handlePrev} variant="contained" color="primary">
-              Indietro
-            </Button>
-            <Button onClick={handleNext} variant="contained" color="primary">
-              Avanti
-            </Button>
+            <Paper elevation={3} sx={{ p: 2, overflow: 'hidden' }}>
+              <Typography variant="h6" align="center" gutterBottom>
+                Nuvola di punti (demo)
+              </Typography>
+              <PointCloudViewer frame={frame} points={points} />
+            </Paper>
           </Box>
         </Container>
       </Box>
