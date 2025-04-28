@@ -3,84 +3,73 @@ import { Canvas } from '@react-three/fiber';
 import { Points, PointMaterial, OrbitControls, Box } from '@react-three/drei';
 import * as THREE from 'three';
 
-export default function PointCloudViewer({ frame, points }) {
+export default function PointCloudViewer({ frame, points, detections }) {
   const positions = useMemo(() => {
     if (!points || points.length === 0) {
-      // fallback
-      const array = [];
-      for (let i = 0; i < 1000; i++) {
-        array.push([
-          (Math.random() - 0.5) * 10,
-          (Math.random() - 0.5) * 10,
-          (Math.random() - 0.5) * 10,
-        ]);
-      }
-      return new Float32Array(array.flat());
+      return null; // Nessun punto => non disegnare nulla
     } else {
-      // usa i punti veri dal websocket
       return new Float32Array(points.flatMap(p => [p.x, p.y, p.z]));
     }
   }, [points, frame]);
-
-  // Rimane invariato il codice dei box (per ora generato a caso)
-  const boxes = useMemo(() => {
-    const genBox = () => {
-      const position = [
-        (Math.random() - 0.5) * 8,
-        (Math.random() - 0.5) * 8,
-        (Math.random() - 0.5) * 8,
-      ];
-      const size = [
-        0.5 + Math.random() * 2,
-        0.5 + Math.random() * 2,
-        0.5 + Math.random() * 2,
-      ];
-      const direction = new THREE.Vector3(
-        (Math.random() - 0.5),
-        (Math.random() - 0.5),
-        (Math.random() - 0.5)
-      ).normalize();
-      const velocity = Math.random() * 2;
-      return {
-        position,
-        size,
-        direction,
-        velocity,
-      };
-    };
-    return Array.from({ length: 3 }, genBox);
-  }, [frame]);
 
   return (
     <Canvas style={{ width: '100%', height: '100%' }}>
       <OrbitControls />
       <primitive object={new THREE.AxesHelper(5)} />
 
-      {boxes.map((box, idx) => {
-        const distance = Math.sqrt(box.position.reduce((sum, x) => sum + x * x, 0));
-        const danger = 1 - Math.min(1, distance / 10);
-        const height = box.size[1];
+      {/* Disegna le detection ricevute */}
+      {detections && detections.map((detection, idx) => {
+        const { position, velocity } = detection;
+
+        const distance = Math.sqrt(
+          position.x * position.x +
+          position.y * position.y +
+          position.z * position.z
+        );
+
+        // Danger massimo a 3 metri, zero sopra 10 metri
+        let danger;
+        if (distance <= 3) {
+          danger = 1;
+        } else if (distance >= 10) {
+          danger = 0;
+        } else {
+          danger = 1 - (distance - 3) / (10 - 3); // Scala lineare da 1 (3m) a 0 (10m)
+        }
+
+        const height = 1; // altezza base cilindro
         const filledHeight = danger * height;
-        const color = new THREE.Color().setHSL((1 - danger) * 0.3, 1, 0.5);
+
+        // Colore da rosso (danger=1) a verde (danger=0)
+        const color = new THREE.Color();
+        color.setHSL((1 - danger) * 0.33, 1, 0.5); 
+
+        const directionVector = new THREE.Vector3(velocity.vx, velocity.vy, velocity.vz);
+        const normalizedDirection = directionVector.length() > 0 
+          ? directionVector.clone().normalize() 
+          : new THREE.Vector3(1, 0, 0);
 
         return (
-          <group key={idx}>
-            <Box position={box.position} args={box.size}>
+          <group key={idx} position={[position.x, position.y, position.z]}>
+            {/* Bounding box */}
+            <Box position={[0, 0, 0]} args={[1, 1, 1]}>
               <meshBasicMaterial color={'white'} wireframe />
             </Box>
 
+            {/* Arrow helper */}
             <primitive
               object={new THREE.ArrowHelper(
-                box.direction,
-                new THREE.Vector3(...box.position),
-                box.velocity,
-                0xffff00,
+                normalizedDirection,
+                new THREE.Vector3(0, 0, 0),
+                directionVector.length(),
+                0xff0000,
                 0.2,
                 0.1
               )}
             />
 
-            <group position={box.position}>
+            {/* Danger Indicator */}
+            <group>
               <mesh position={[0, 0, 0]}>
                 <cylinderGeometry args={[0.1, 0.1, height, 8]} />
                 <meshBasicMaterial color={'gray'} transparent opacity={0.2} />
@@ -94,16 +83,18 @@ export default function PointCloudViewer({ frame, points }) {
           </group>
         );
       })}
-
-      <Points positions={positions} stride={3} frustumCulled={false}>
-        <PointMaterial
-          transparent
-          color="#00ffff"
-          size={0.1}
-          sizeAttenuation={true}
-          depthWrite={false}
-        />
-      </Points>
+      {/* Disegna la point cloud se esistono punti */}
+      {positions && (
+        <Points positions={positions} stride={3} frustumCulled={false}>
+          <PointMaterial
+            transparent
+            color="#00ffff"
+            size={0.1}
+            sizeAttenuation={true}
+            depthWrite={false}
+          />
+        </Points>
+      )}
     </Canvas>
   );
 }

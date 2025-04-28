@@ -1,9 +1,8 @@
-// useWebSocketData.js
-
 import { useState, useEffect } from 'react';
 
 export function useWebSocketData(url) {
   const [points, setPoints] = useState([]);
+  const [detections, setDetections] = useState([]); // <-- nuovo stato per le detections
   const [image1, setImage1] = useState(null);
   const [image2, setImage2] = useState(null);
   const [frame, setFrame] = useState(0);
@@ -11,18 +10,29 @@ export function useWebSocketData(url) {
 
   useEffect(() => {
     const ws = new WebSocket(url);
-    setSocket(ws); // Salva il websocket per poterlo usare fuori
+    setSocket(ws); // Salva il websocket
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      if (message.type === 'point') {
-        setPoints(message.data);
-      } else if (message.type === 'image1') {
-        setImage1(message.data);
-      } else if (message.type === 'image2') {
-        setImage2(message.data);
-      } else if (message.type === 'frame') {
-        setFrame(message.frame);
+
+      switch (message.type) {
+        case 'point':
+          setPoints(message.data);
+          break;
+        case 'detections': // <-- nuovo caso per gestire detection
+          setDetections(message.data);
+          break;
+        case 'image1':
+          setImage1(message.data);
+          break;
+        case 'image2':
+          setImage2(message.data);
+          break;
+        case 'frame':
+          setFrame(message.frame);
+          break;
+        default:
+          console.warn('Messaggio sconosciuto ricevuto dal server:', message);
       }
     };
 
@@ -31,5 +41,5 @@ export function useWebSocketData(url) {
     };
   }, [url]);
 
-  return { points, image1, image2, frame, socket };
+  return { points, detections, image1, image2, frame, socket }; // <-- aggiungi detections qui
 }

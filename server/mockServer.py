@@ -34,11 +34,35 @@ async def send_mock_data(websocket):
         img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         # Crea punti
-        points = [{"x": random.uniform(-5, 5), "y": random.uniform(-5, 5), "z": random.uniform(-5, 5)} for _ in range(100)]
+        points = [{"x": random.uniform(-5, 5), "y": random.uniform(-5, 5), "z": random.uniform(-5, 5)} for _ in range(10)]
 
+        # Crea detections
+        num_detections = random.randint(0, 5)
+        detections = []
+        for _ in range(num_detections):
+            detection = {
+                "position": {
+                    "x": random.uniform(-20, 20),
+                    "y": random.uniform(-20, 20),
+                    "z": random.uniform(-20, 20)
+                },
+                "velocity": {
+                    "vx": random.uniform(-3,3),
+                    "vy": random.uniform(-3,3),
+                    "vz": random.uniform(-3,3)
+                }
+            }
+            detections.append(detection)
+ 
+        # Invia i dati
         await websocket.send(json.dumps({
             "type": "point",
             "data": points
+        }))
+
+        await websocket.send(json.dumps({
+            "type": "detections",
+            "data": detections
         }))
 
         await websocket.send(json.dumps({
@@ -60,11 +84,9 @@ async def send_mock_data(websocket):
 
         await asyncio.sleep(FRAME_INTERVAL)
 
-
-
 async def main():
     async with websockets.serve(send_mock_data, "localhost", 8000):
-        print("Mock WebSocket server running at ws://localhost:8000/ws")
+        print("Mock WebSocket server running at ws://localhost:8000/")
         await asyncio.Future()  # run forever
 
 if __name__ == "__main__":

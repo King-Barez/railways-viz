@@ -13,7 +13,7 @@ import PointCloudViewer from './components/PointCloudViewer';
 import { useWebSocketData } from './hooks/useWebSocketData';
 
 function App() {
-  const { points, image1, image2, frame, socket } = useWebSocketData('ws://localhost:8000/ws');
+  const { points, image1, image2, frame, detections, socket } = useWebSocketData('ws://localhost:8000/ws');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -25,10 +25,15 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [socket]);
 
+
   const [mode, setMode] = React.useState('light');
 
   const toggleTheme = () => {
     setMode(prev => (prev === 'light' ? 'dark' : 'light'));
+    const button = document.getElementById('theme-toggle-button');
+    if (button) {
+      button.blur(); // Rimuove il focus
+    }
   };
 
   const theme = useMemo(
@@ -83,7 +88,7 @@ function App() {
               <Typography variant="h4" component="h1" fontWeight="bold">
                 Railways Viz
               </Typography>
-              <Button variant="contained" onClick={toggleTheme}>
+              <Button variant="contained" onClick={toggleTheme} type="button" id="theme-toggle-button">
                 Tema: {mode === 'light' ? 'Chiaro' : 'Scuro'}
               </Button>
             </Box>
@@ -201,7 +206,7 @@ function App() {
                 </Typography>
 
                 <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-                  <PointCloudViewer frame={frame} points={points} />
+                  <PointCloudViewer frame={frame} points={points} detections={detections} />
                 </Box>
               </Paper>
             </Box>
