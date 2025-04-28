@@ -36,9 +36,16 @@ function App() {
       createTheme({
         palette: {
           mode,
+          background: {
+            default: mode === 'light' ? '#fafafa' : '#121212',
+            paper: mode === 'light' ? '#f5f5f5' : '#1e1e1e',
+          },
           primary: {
             main: '#1976d2',
           },
+        },
+        shape: {
+          borderRadius: 12,
         },
       }),
     [mode]
@@ -55,41 +62,56 @@ function App() {
           color: 'text.primary',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center', // <-- centra orizzontalmente
+          alignItems: 'center',
           p: 2,
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
         }}
       >
         <Box
           sx={{
-            width: '70%', // <-- solo il 70% della larghezza
-            height: '70%',
+            width: '80%',
+            height: '85%',
             display: 'flex',
             flexDirection: 'column',
+            borderRadius: 4,
+            overflow: 'hidden',
           }}
         >
           {/* HEADER */}
-          <Container maxWidth="xl" sx={{ flexGrow: 0, px: 0 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h4" component="h1">
+          <Container maxWidth="xl" sx={{ flexGrow: 0, px: 0, mb: 2 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h4" component="h1" fontWeight="bold">
                 Railways Viz
               </Typography>
-              <Button variant="outlined" onClick={toggleTheme}>
+              <Button variant="contained" onClick={toggleTheme}>
                 Tema: {mode === 'light' ? 'Chiaro' : 'Scuro'}
               </Button>
             </Box>
 
-            <Typography variant="subtitle1" align="center" gutterBottom>
+            <Typography variant="subtitle2" align="center" color="text.secondary" mt={1}>
               Frame corrente: {frame}
             </Typography>
           </Container>
 
           {/* CONTENUTO PRINCIPALE */}
-          <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', mt: 2 }}>
+          <Paper
+            elevation={4}
+            sx={{
+              flexGrow: 1,
+              display: 'flex',
+              overflow: 'hidden',
+              p: 2,
+              bgcolor: 'background.paper',
+              border: '2px solid #1976d2',  // Bordo visibile e colorato (usa il colore primario)
+              borderRadius: 4,  // Angoli arrotondati
+              boxShadow: '0 6px 12px rgba(0, 0, 0, 0.1)',  // Ombra più marcata per il risalto
+            }}
+          >
             {/* COLONNA SINISTRA: IMMAGINI */}
             <Box
               sx={{
                 width: '65%',
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 2,
@@ -97,36 +119,60 @@ function App() {
                 pr: 1,
               }}
             >
-              <Paper elevation={3} sx={{ p: 2 }}>
+              <Paper elevation={2} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {image1 ? (
-                  <img
-                    src={`data:image/png;base64,${image1}`}
-                    alt="Immagine 1"
-                    style={{ width: '70%', height: 'auto', borderRadius: 8 }}
-                  />
+                  <Box display="flex" justifyContent="center" sx={{ flexGrow: 1, alignItems: 'center' }}>
+                    <img
+                      src={`data:image/png;base64,${image1}`}
+                      alt="Immagine 1"
+                      style={{
+                        width: 'auto',
+                        height: '100%',
+                        objectFit: 'contain', // Rende l'immagine scalabile mantenendo le proporzioni
+                        borderRadius: 8,
+                      }}
+                    />
+                  </Box>
                 ) : (
-                  <Typography align="center">Caricamento immagine 1...</Typography>
+                  <Typography align="center" color="text.secondary">
+                    Caricamento immagine 1...
+                  </Typography>
                 )}
-                <Typography variant="h6" align="center" mt={2}>
-                  Immagine 1: Una descrizione
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Typography variant="h6" align="center">
+                    Immagine 1
+                  </Typography>
+                </Box>
               </Paper>
 
-              <Paper elevation={3} sx={{ p: 2 }}>
+              <Paper elevation={2} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {image2 ? (
-                  <img
-                    src={`data:image/png;base64,${image2}`}
-                    alt="Immagine 2"
-                    style={{ width: '70%', height: 'auto', borderRadius: 8 }}
-                  />
+                  <Box display="flex" justifyContent="center" sx={{ flexGrow: 1, alignItems: 'center' }}>
+                    <img
+                      src={`data:image/png;base64,${image2}`}
+                      alt="Immagine 2"
+                      style={{
+                        width: 'auto',
+                        height: '100%',
+                        objectFit: 'contain', // Rende l'immagine scalabile mantenendo le proporzioni
+                        borderRadius: 8,
+                      }}
+                    />
+                  </Box>
                 ) : (
-                  <Typography align="center">Caricamento immagine 2...</Typography>
+                  <Typography align="center" color="text.secondary">
+                    Caricamento immagine 2...
+                  </Typography>
                 )}
-                <Typography variant="h6" align="center" mt={2}>
-                  Immagine 2: Un'altra descrizione
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Typography variant="h6" align="center">
+                    Immagine 2
+                  </Typography>
+                </Box>
               </Paper>
             </Box>
+
+
 
             {/* COLONNA DESTRA: NUVOLA DI PUNTI */}
             <Box
@@ -139,32 +185,27 @@ function App() {
               }}
             >
               <Paper
-                elevation={3}
+                elevation={2}
                 sx={{
                   flexGrow: 1,
                   p: 2,
                   display: 'flex',
                   flexDirection: 'column',
                   overflow: 'hidden',
+                  bgcolor: 'background.default',
+                  borderRadius: 3,
                 }}
               >
-                <Typography variant="h6" align="center" gutterBottom>
-                  Nuvola di punti (demo)
+                <Typography variant="h6" align="center" mb={2}>
+                  Nuvola di punti
                 </Typography>
 
-                <Box
-                  sx={{
-                    flexGrow: 1,
-                    overflow: 'hidden',
-                    display: 'flex',
-                  }}
-                >
-                  {/* PointCloudViewer occupa tutto */}
+                <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
                   <PointCloudViewer frame={frame} points={points} />
                 </Box>
               </Paper>
             </Box>
-          </Box>
+          </Paper>
         </Box>
       </Box>
     </ThemeProvider>
@@ -172,4 +213,3 @@ function App() {
 }
 
 export default App;
- 
