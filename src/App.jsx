@@ -95,7 +95,7 @@ function App() {
             <Typography variant="h6" align="center" gutterBottom>
               Nuvola di punti (demo)
             </Typography>
-            <PointCloudViewer />
+            <PointCloudViewer frame={frame} />
           </Paper>
 
           </Box>
