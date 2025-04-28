@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -13,7 +13,18 @@ import PointCloudViewer from './components/PointCloudViewer';
 import { useWebSocketData } from './hooks/useWebSocketData';
 
 function App() {
-  const { points, image1, image2, frame } = useWebSocketData('ws://localhost:8000/ws');
+  const { points, image1, image2, frame, socket } = useWebSocketData('ws://localhost:8000/ws');
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && socket?.readyState === WebSocket.OPEN) {
+        socket.send('toggle_pause');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [socket]);
+
   const [mode, setMode] = React.useState('light');
 
   const toggleTheme = () => {
@@ -38,76 +49,127 @@ function App() {
       <CssBaseline />
       <Box
         sx={{
-          width: '100vw', 
+          width: '100vw',
           height: '100vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
           bgcolor: 'background.default',
           color: 'text.primary',
-          px: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center', // <-- centra orizzontalmente
+          p: 2,
+          boxSizing: 'border-box'
         }}
       >
-        <Container maxWidth="md" sx={{ mx: 'auto'}}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-            <Typography variant="h4" component="h1">
-              Railways Viz
+        <Box
+          sx={{
+            width: '70%', // <-- solo il 70% della larghezza
+            height: '70%',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* HEADER */}
+          <Container maxWidth="xl" sx={{ flexGrow: 0, px: 0 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h4" component="h1">
+                Railways Viz
+              </Typography>
+              <Button variant="outlined" onClick={toggleTheme}>
+                Tema: {mode === 'light' ? 'Chiaro' : 'Scuro'}
+              </Button>
+            </Box>
+
+            <Typography variant="subtitle1" align="center" gutterBottom>
+              Frame corrente: {frame}
             </Typography>
-            <Button variant="outlined" onClick={toggleTheme}>
-              Tema: {mode === 'light' ? 'Chiaro' : 'Scuro'}
-            </Button>
-          </Box>
+          </Container>
 
-          <Typography variant="subtitle1" align="center" gutterBottom>
-            Frame corrente: {frame}
-          </Typography>
+          {/* CONTENUTO PRINCIPALE */}
+          <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', mt: 2 }}>
+            {/* COLONNA SINISTRA: IMMAGINI */}
+            <Box
+              sx={{
+                width: '65%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                overflowY: 'auto',
+                pr: 1,
+              }}
+            >
+              <Paper elevation={3} sx={{ p: 2 }}>
+                {image1 ? (
+                  <img
+                    src={`data:image/png;base64,${image1}`}
+                    alt="Immagine 1"
+                    style={{ width: '70%', height: 'auto', borderRadius: 8 }}
+                  />
+                ) : (
+                  <Typography align="center">Caricamento immagine 1...</Typography>
+                )}
+                <Typography variant="h6" align="center" mt={2}>
+                  Immagine 1: Una descrizione
+                </Typography>
+              </Paper>
 
-          <Box my={4}>
-            <Paper elevation={3} sx={{ p: 2 }}>
-              {image1 ? (
-                <img
-                  src={`data:image/png;base64,${image1}`}
-                  alt="Immagine 1"
-                  style={{ width: '100%', borderRadius: 8 }}
-                />
-              ) : (
-                <Typography align="center">Caricamento immagine 1...</Typography>
-              )}
-              <Typography variant="h6" align="center" mt={2}>
-                Immagine 1: Una descrizione
-              </Typography>
-            </Paper>
-          </Box>
+              <Paper elevation={3} sx={{ p: 2 }}>
+                {image2 ? (
+                  <img
+                    src={`data:image/png;base64,${image2}`}
+                    alt="Immagine 2"
+                    style={{ width: '70%', height: 'auto', borderRadius: 8 }}
+                  />
+                ) : (
+                  <Typography align="center">Caricamento immagine 2...</Typography>
+                )}
+                <Typography variant="h6" align="center" mt={2}>
+                  Immagine 2: Un'altra descrizione
+                </Typography>
+              </Paper>
+            </Box>
 
-          <Box my={4}>
-            <Paper elevation={3} sx={{ p: 2 }}>
-              {image2 ? (
-                <img
-                  src={`data:image/png;base64,${image2}`}
-                  alt="Immagine 2"
-                  style={{ width: '100%', borderRadius: 8 }}
-                />
-              ) : (
-                <Typography align="center">Caricamento immagine 2...</Typography>
-              )}
-              <Typography variant="h6" align="center" mt={2}>
-                Immagine 2: Un'altra descrizione
-              </Typography>
-            </Paper>
-          </Box>
+            {/* COLONNA DESTRA: NUVOLA DI PUNTI */}
+            <Box
+              sx={{
+                width: '35%',
+                height: '100%',
+                pl: 1,
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <Paper
+                elevation={3}
+                sx={{
+                  flexGrow: 1,
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                }}
+              >
+                <Typography variant="h6" align="center" gutterBottom>
+                  Nuvola di punti (demo)
+                </Typography>
 
-          <Box my={4}>
-            <Paper elevation={3} sx={{ p: 2, overflow: 'hidden' }}>
-              <Typography variant="h6" align="center" gutterBottom>
-                Nuvola di punti (demo)
-              </Typography>
-              <PointCloudViewer frame={frame} points={points} />
-            </Paper>
+                <Box
+                  sx={{
+                    flexGrow: 1,
+                    overflow: 'hidden',
+                    display: 'flex',
+                  }}
+                >
+                  {/* PointCloudViewer occupa tutto */}
+                  <PointCloudViewer frame={frame} points={points} />
+                </Box>
+              </Paper>
+            </Box>
           </Box>
-        </Container>
+        </Box>
       </Box>
     </ThemeProvider>
   );
 }
 
 export default App;
+ 

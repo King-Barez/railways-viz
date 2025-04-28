@@ -52,7 +52,7 @@ export default function PointCloudViewer({ frame, points }) {
   }, [frame]);
 
   return (
-    <Canvas style={{ width: '100%', height: 300 }}>
+    <Canvas style={{ width: '100%', height: '100%' }}>
       <OrbitControls />
       <primitive object={new THREE.AxesHelper(5)} />
 

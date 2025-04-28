@@ -1,36 +1,35 @@
-import { useEffect, useState } from "react";
+// useWebSocketData.js
+
+import { useState, useEffect } from 'react';
 
 export function useWebSocketData(url) {
   const [points, setPoints] = useState([]);
   const [image1, setImage1] = useState(null);
   const [image2, setImage2] = useState(null);
   const [frame, setFrame] = useState(0);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const socket = new WebSocket(url);
+    const ws = new WebSocket(url);
+    setSocket(ws); // Salva il websocket per poterlo usare fuori
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "point") {
-        setPoints(prevPoints => [...prevPoints, data]);
-      } else if (data.type === "image1") {
-        setImage1(data.data);
-      } else if (data.type === "image2") {
-        setImage2(data.data);
-      } else if (data.type === "frame") {
-        setFrame(data.frame);
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'point') {
+        setPoints(message.data);
+      } else if (message.type === 'image1') {
+        setImage1(message.data);
+      } else if (message.type === 'image2') {
+        setImage2(message.data);
+      } else if (message.type === 'frame') {
+        setFrame(message.frame);
       }
     };
 
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
     return () => {
-      socket.close();
+      ws.close();
     };
   }, [url]);
 
-  return { points, image1, image2, frame };
+  return { points, image1, image2, frame, socket };
 }
