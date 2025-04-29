@@ -42,9 +42,9 @@ async def send_mock_data(websocket):
         for _ in range(num_detections):
             detection = {
                 "position": {
-                    "x": random.uniform(-20, 20),
-                    "y": random.uniform(-20, 20),
-                    "z": random.uniform(-20, 20)
+                    "x": random.uniform(-6, 6),
+                    "y": random.uniform(-6, 6),
+                    "z": random.uniform(-6, 6)
                 },
                 "velocity": {
                     "vx": random.uniform(-3,3),

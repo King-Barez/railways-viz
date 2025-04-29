@@ -26,7 +26,7 @@ function App() {
   }, [socket]);
 
 
-  const [mode, setMode] = React.useState('light');
+  const [mode, setMode] = React.useState('dark');
 
   const toggleTheme = () => {
     setMode(prev => (prev === 'light' ? 'dark' : 'light'));
