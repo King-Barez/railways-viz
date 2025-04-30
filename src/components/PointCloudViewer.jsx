@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Points, PointMaterial, OrbitControls, Box } from '@react-three/drei';
+import { Points, PointMaterial, Box, TrackballControls, Text, Billboard} from '@react-three/drei';
 import * as THREE from 'three';
 
 export default function PointCloudViewer({ frame, points, detections }) {
@@ -14,39 +14,40 @@ export default function PointCloudViewer({ frame, points, detections }) {
 
   return (
     <Canvas style={{ width: '100%', height: '100%' }}>
-      <OrbitControls />
-      <primitive object={new THREE.AxesHelper(5)} />
+      
+      <TrackballControls 
+        rotateSpeed={5}
+        zoomSpeed={1.2}
+        panSpeed={0.8}
+        dynamicDampingFactor={0.3}
+      />
+      <primitive object={new THREE.AxesHelper(10)} />
+      <primitive object={new THREE.GridHelper(50, 40, 0x888888, 0x444444)} rotation={[Math.PI / 2, 0, 0]} />
+
 
       {/* Disegna le detection ricevute */}
       {detections && detections.map((detection, idx) => {
-        const { position, velocity } = detection;
+        const { id, position, velocity } = detection;
 
-        const distance = Math.sqrt(
-          position.x * position.x +
-          position.y * position.y +
-          position.z * position.z
-        );
+        const distance = Math.sqrt(position.x ** 2 + position.y ** 2 + position.z ** 2);
 
-        // Danger massimo a 3 metri, zero sopra 10 metri
         let danger;
-        if (distance <= 3) {
-          danger = 1;
-        } else if (distance >= 10) {
-          danger = 0;
-        } else {
-          danger = 1 - (distance - 3) / (10 - 3); // Scala lineare da 1 (3m) a 0 (10m)
-        }
+        if (distance <= 3) danger = 1;
+        else if (distance >= 10) danger = 0;
+        else danger = 1 - (distance - 3) / (10 - 3);
 
-        const height = 1; // altezza base cilindro
+        const height = 1;
         const filledHeight = danger * height;
 
-        // Colore da rosso (danger=1) a verde (danger=0)
         const color = new THREE.Color();
-        color.setHSL((1 - danger) * 0.33, 1, 0.5); 
+        color.setHSL((1 - danger) * 0.33, 1, 0.5);
 
         const directionVector = new THREE.Vector3(velocity.vx, velocity.vy, velocity.vz);
-        const normalizedDirection = directionVector.length() > 0 
-          ? directionVector.clone().normalize() 
+        const speed = directionVector.length();
+
+        const arrowLength = Math.min(Math.max(speed, 0.5), 1.0); // clamp tra 0.5 e 1.0
+        const normalizedDirection = speed > 0
+          ? directionVector.clone().normalize()
           : new THREE.Vector3(1, 0, 0);
 
         return (
@@ -56,20 +57,33 @@ export default function PointCloudViewer({ frame, points, detections }) {
               <meshBasicMaterial color={'white'} wireframe />
             </Box>
 
+            {/* ID label */}
+            <Billboard>
+              <Text
+                position={[0, 0.6, 0]}  // sopra la box
+                fontSize={0.4}
+                color="#00ff00"
+                anchorX="center"
+                anchorY="middle"
+              >
+                {`ID: ${id ?? idx}`}
+              </Text>
+            </Billboard>
+
             {/* Arrow helper */}
             <primitive
               object={new THREE.ArrowHelper(
                 normalizedDirection,
                 new THREE.Vector3(0, 0, 0),
-                directionVector.length(),
+                arrowLength,
                 0xff0000,
-                0.2,
-                0.1
+                0.3,
+                0.15
               )}
             />
 
             {/* Danger Indicator */}
-            <group>
+            <group rotation={[Math.PI / 2, 0, 0]}>
               <mesh position={[0, 0, 0]}>
                 <cylinderGeometry args={[0.1, 0.1, height, 8]} />
                 <meshBasicMaterial color={'gray'} transparent opacity={0.2} />
@@ -89,7 +103,7 @@ export default function PointCloudViewer({ frame, points, detections }) {
           <PointMaterial
             transparent
             color="#00ffff"
-            size={0.1}
+            size={0.01}
             sizeAttenuation={true}
             depthWrite={false}
           />

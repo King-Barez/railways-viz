@@ -19,7 +19,7 @@ export function useWebSocketData(url) {
         case 'point':
           setPoints(message.data);
           break;
-        case 'detections': // <-- nuovo caso per gestire detection
+        case 'detections': 
           setDetections(message.data);
           break;
         case 'image1':

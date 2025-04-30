@@ -37,10 +37,14 @@ class ScanIterator(ScanSource):
         self._prev_object_positions_NIR = {}  # instance_id -> xyz
         self._prev_object_positions_REF = {}
         self._prev_object_positions_SIG = {}
+        self._vel_to_send = {}
+        self._detections_to_send = []
         self._frame_count = 0
 
         # converting range data to XYZ point clouds
         self._xyzlut = XYZLut(self._metadata)
+        self._valid_points = []
+
 
         self._generate_rgb_table()
 
@@ -105,6 +109,8 @@ class ScanIterator(ScanSource):
         self._last_centroids_REF = []
         self._last_velocities_REF = []
         self._last_xyz_points = None
+        self._valid_points = []
+        self._detections_to_send = []
 
         stacked_result_rgb = np.empty((scan.h * len(self.paired_list), scan.w, 3), np.uint8)
         for i, (field, ae, buc, model, prev_object_positions) in enumerate(self.paired_list):
@@ -155,6 +161,10 @@ class ScanIterator(ScanSource):
                 range_mm = destagger(self._metadata, range_mm)
 
                 valid = range_mm != 0  # Ignore non-detected points
+                if field == ChanField.REFLECTIVITY:
+                    # Salva i punti validi per il campo REFLECTIVITY
+                    self._valid_points = [{"x": p[0], "y": p[1], "z": p[2]} for p in xyz_meters[valid]]
+
                 
                 # Crea una copia modificabile dell'immagine delle istanze
                 instance_id_img_with_median = instance_id_img.copy()
@@ -178,8 +188,24 @@ class ScanIterator(ScanSource):
                         delta_t = 0.1  # secondi tra due frame consecutivi
                         velocity = (median_xyz - prev_xyz) / delta_t
                         velocity_info.append(f"ID {instance_id}: velocità = {velocity[0]:.2f}, {velocity[1]:.2f}, {velocity[2]:.2f} m/s")
+                        if field == ChanField.REFLECTIVITY:
+                            self._detections_to_send.append({
+                                "id": int(instance_id),
+                                "position":{
+                                    "x": float(median_xyz[0]),
+                                    "y": float(median_xyz[1]),
+                                    "z": float(median_xyz[2])
+                                },
+                                "velocity": {
+                                    "vx": float(velocity[0]),
+                                    "vy": float(velocity[1]),
+                                    "vz": float(velocity[2])
+                                }
+                            })
                     else:
                         velocity_info.append(f"ID {instance_id}: prima osservazione, velocità non disponibile.")
+                        if field == ChanField.REFLECTIVITY:
+                            self._vel_to_send[instance_id] = np.array([0.0, 0.0, 0.0])
 
                     # Aggiorna la posizione
                     prev_object_positions[instance_id] = median_xyz
@@ -194,7 +220,7 @@ class ScanIterator(ScanSource):
                     cv2.circle(instance_id_img_with_median, (idx[1], idx[0]), radius=1, color=(255,0,0), thickness=-1)
                 
                 print("\n\n\n\n\FRAME: ", self._frame_count)
-                if i == 2: #aggiorno il frame count una volta ogni due inferenze
+                if i == 2: 
                     self._frame_count += 1
                     print("\n###SIGNAL###")
                 elif i == 1:
@@ -284,8 +310,8 @@ class ScanIterator(ScanSource):
 
         try:
             # Ottieni immagini YOLO e RGB istanza
-            yolo_img = scan.field("YOLO_RESULTS_REFLECTIVITY")
-            rgb_instance_img = scan.field("RGB_INSTANCE_ID_REFLECTIVITY")
+            yolo_img = destagger(self._metadata, scan.field("YOLO_RESULTS_REFLECTIVITY"))
+            rgb_instance_img = destagger(self._metadata, scan.field("RGB_INSTANCE_ID_REFLECTIVITY"))
 
             # Estrai punti XYZ validi (range ≠ 0)
             xyz_meters = self._xyzlut(scan.field(ChanField.RANGE))
@@ -293,21 +319,6 @@ class ScanIterator(ScanSource):
             range_mm = destagger(self._metadata, scan.field(ChanField.RANGE))
             valid = range_mm != 0
             valid_points = [{"x": p[0], "y": p[1], "z": p[2]} for p in xyz_meters[valid]]
-
-
-            # Centroidi e velocità per il frame corrente
-            detections = []
-            for instance_id, pos in self._prev_object_positions_REF.items():
-                velocity = np.array([0.0, 0.0, 0.0])
-                if instance_id in self._prev_object_positions_REF:
-                    prev = self._prev_object_positions_REF.get(instance_id)
-                    delta_t = 0.1
-                    velocity = ((pos - prev) / delta_t).tolist()
-                detections.append({
-                    "id": int(instance_id),
-                    "position": pos.tolist(),
-                    "velocity": velocity
-                })
 
             # Invia tutto separatamente
             await websocket.send(json.dumps({
@@ -317,7 +328,7 @@ class ScanIterator(ScanSource):
 
             await websocket.send(json.dumps({
                 "type": "detections",
-                "data": detections
+                "data": self._detections_to_send
             }))
 
             await websocket.send(json.dumps({
